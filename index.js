@@ -6,6 +6,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
+// romanian literals
 const literals = {
   0: ["zero"],
   1: ["unu", "un", "o"],
@@ -19,14 +20,14 @@ const literals = {
   9: ["nouă"],
   10: ["zece", "zeci"],
 };
-
+// romanian suffixes
 const suffixes = {
   1: [""],
   2: ["spre", "și"],
   3: ["sute", "sută"],
   4: ["mii", "mie"],
 };
-
+// big numbers base prefixes
 const latinPrefixes = {
   1: "m",
   2: "b",
@@ -50,25 +51,23 @@ const latinPrefixes = {
   20: "vig",
   100: "googol",
 };
-
-const additionals = {
-  20: "int",
-};
-
+// resolve 1 group of numbers ( 1 group is a number with 10^3 zeros)
 function resolveGroup(number) {
   let literalString = "";
 
   if (number.length == 1 && !parseInt(number)) {
+    // handle zero only
     return literals[number][0];
   }
+
   for (let i = 0; i < number.length; i++) {
     if (number[i] == 0) {
       // handle zeros
       continue;
     }
-    if (number.slice(-2) == 10 && number.length == 2) {
-      // handle 10 alone
-      literalString += literals[number.slice(-2)][0];
+    if (number.slice(-2) == 10) {
+      // handle 10s
+      literalString += literals[number.slice(-2)][0] + " ";
       break;
     } else if (
       number.length - i == 2 &&
@@ -78,20 +77,20 @@ function resolveGroup(number) {
       // handling from 11 to 19 exeption
       literalString += `${
         literals[number.slice(-2)[1]][1] || literals[number.slice(-2)[1]][0]
-      }${suffixes[number.length - i][0]}${literals[10][0]}`;
+      }${suffixes[number.length - i][0]}${literals[10][0]} `;
       break;
     } else if (number.length - i == 2 && number.slice(i) >= 20) {
       // handling numbers between 20 and 99
-      if (number.slice(i) % 10 == 0) {
+      if (number.slice(i) >= 60 && number.slice(i) < 70) {
+        // handling 60 to 69 exeption
+        literalString += `${literals[number[i]][1]}${literals[10][1]}${
+          number.slice(i) != 60 ? " " + suffixes[number.length - i][1] : ""
+        } `;
+      } else if (number.slice(i) % 10 == 0) {
         // handling round tens
         literalString += `${literals[number[i]][number[i] == 2 ? 1 : 0]}${
           literals[10][1]
-        }`;
-      } else if (number.slice(i) >= 60 && number.slice(i) < 70) {
-        // handling 60 to 69 exeption
-        literalString += `${literals[number[i]][1]}${literals[10][1]} ${
-          suffixes[number.length - i][1]
-        }`;
+        } `;
       } else {
         // handle the rest of 20 to 99
         literalString += `${literals[number[i]][number[i] == 2 ? 1 : 0]}${
@@ -102,7 +101,7 @@ function resolveGroup(number) {
       // handle hundreds and thousands begining with 1
       literalString += `${literals[number[i]][2]} ${
         suffixes[number.length - i][1]
-      }`;
+      } `;
     } else if (number[i] == 2 && number.length - i != 1) {
       // handle the 2 exception when not at the end of the number
       literalString += `${literals[number[i]][1]} ${
@@ -111,63 +110,133 @@ function resolveGroup(number) {
     } else {
       // in regular cases
       literalString += `${literals[number[i]][0]} ${
-        suffixes[number.length - i][0]
-      } `;
+        suffixes[number.length - i][0] + " "
+      }`;
     }
   }
 
   return literalString;
 }
-
-function addSufix(groupNumber, currentGroup) {
-  if (groupNumber % 2 == 1) {
-    return currentGroup.length == 1 && currentGroup[0] == 1
-      ? "ilion\n"
-      : "ilioane\n";
-  } else {
-    return currentGroup.length == 1 && currentGroup[0] == 1
-      ? "iliard\n"
-      : "iliarde\n";
-  }
-}
-
-function addPrefix(groupNumber) {
+// generating a prefix based on the base prefixes from latinPrefixes map
+function generateBigPrefix(groupNumber) {
   let finalPrefix = "";
+  let numOfZeros = (groupNumber - 1) * 3;
+  let position = Math.floor(numOfZeros / 6);
 
-  if (groupNumber <= 22) {
-    return latinPrefixes[Math.floor(((groupNumber - 1) * 3) / 6)];
+  if (position.toString().length >= 2) {
+    // handle positions with 2 digits or higher
+
+    if (position.toString()[0] == 1) {
+      // handle from 10 to 19
+
+      if (position.toString()[1] != 0) {
+        // handle from 11 to 19
+
+        finalPrefix = `${latinPrefixes[position]}${
+          latinPrefixes[position.toString()[0] + "0"]
+        }`;
+      } else {
+        // handle only 10
+
+        finalPrefix = `${latinPrefixes[position]}`;
+      }
+    } else if (position.toString()[0] == 2) {
+      // handle from 20 to 29
+
+      if (position.toString()[1] == 0) {
+        // handle 20 only
+
+        finalPrefix = `${latinPrefixes[position.toString()[0] + "0"]}int`;
+      } else {
+        // handle from 21 to 29
+
+        finalPrefix = `${latinPrefixes["1" + position.toString()[1]]}${
+          latinPrefixes[position.toString()[0] + "0"]
+        }int`;
+      }
+    } else {
+      // handle higher than 29
+
+      if (position.toString()[1] == 0) {
+        // handle round position numbers till 100
+
+        finalPrefix = `${latinPrefixes["1" + position.toString()[0]]}${
+          latinPrefixes[20]
+        }int`;
+      } else {
+        // handle the rest of numbers
+
+        finalPrefix = `${latinPrefixes["1" + position.toString()[1]]}${
+          latinPrefixes["1" + position.toString()[0]]
+        }${latinPrefixes[20]}`;
+      }
+    }
   } else {
-    // if there are more than 22 groups
+    // handle positions from 1 to 9
+    finalPrefix = `${latinPrefixes[position]}`;
+  }
+
+  return finalPrefix;
+}
+// generating suffix ( ex. milion / miliard )
+function generateBigSufix(groupNumber, currentGroup) {
+  if (((groupNumber - 1) * 3) / 6 != 100) {
+    if (groupNumber % 2 == 1) {
+      return currentGroup.length == 1 && currentGroup[0] == 1
+        ? "ilion "
+        : "ilioane ";
+    } else {
+      return currentGroup.length == 1 && currentGroup[0] == 1
+        ? "iliard "
+        : "iliarde ";
+    }
+  } else {
+    return " ";
   }
 }
-
-function generateGroupLiteral(groupNumber, currentGroup) {
+// join the bigPrefix and bigSufix results with logic for correct grammar
+function generateBigLiteral(groupNumber, currentNumber) {
   let theLiteral = "";
 
-  if (parseInt(currentGroup) == 0) {
+  if (parseInt(currentNumber) == 0) {
     return theLiteral;
-  }
-
-  if (resolveGroup(currentGroup).length == 1 || currentGroup < 20) {
-    // if the number is just 1 digit or its lower than 20
-    theLiteral = `${resolveGroup(currentGroup)} ${addPrefix(
-      groupNumber
-    )}${addSufix(groupNumber, currentGroup)} `;
-  } else if (groupNumber == 2) {
+  } else if (groupNumber <= 2) {
     // handle thousands
-    theLiteral = `${resolveGroup(currentGroup)} ${
-      currentGroup >= 20 ? "de" : ""
-    } ${resolveGroup(currentGroup).length == 1 ? "mie" : "mii"} `;
+
+    theLiteral = `${resolveGroup(currentNumber)}${
+      currentNumber.slice(-2) >= 20 ? "de " : ""
+    }${currentNumber.length == 1 ? "mie" : "mii"} `;
+  } else if (currentNumber.length == 1 || currentNumber < 20) {
+    // if the number is just 1 digit OR its lower than 20
+
+    if (currentNumber == 1 || currentNumber == 2) {
+      // when the number is 1 or 2 in the beginning
+
+      theLiteral = `${literals[currentNumber][1]} ${generateBigPrefix(
+        groupNumber
+      )}${generateBigSufix(groupNumber, currentNumber)}`;
+    } else {
+      // for the rest of numbers from 1 to 20
+
+      theLiteral = `${resolveGroup(currentNumber)} ${generateBigPrefix(
+        groupNumber
+      )}${generateBigSufix(groupNumber, currentNumber)}`;
+    }
   } else {
-    theLiteral = `${resolveGroup(currentGroup)}de ${addPrefix(
-      groupNumber
-    )}${addSufix(groupNumber, currentGroup)} `;
+    // handle default big prefixes with "de"
+
+    theLiteral = `${resolveGroup(currentNumber)}${
+      currentNumber.slice(-2) >= 20 ? "de " : ""
+    }${generateBigPrefix(groupNumber)}${generateBigSufix(
+      groupNumber,
+      currentNumber
+    )}`;
   }
 
   return theLiteral;
 }
-
-function resolveNumber(number) {
+// join all number groups for the final answer
+function generateFullLiteral(number) {
   const groups = BigInt(number).toLocaleString("en-US").split(",");
   let finalString = "";
 
@@ -178,26 +247,23 @@ function resolveNumber(number) {
 
     if (i != groups.length - 1) {
       // when not last
-      finalString += generateGroupLiteral(groupNumber, groups[i]);
+      finalString += generateBigLiteral(groupNumber, groups[i]);
     } else {
       finalString += resolveGroup(groups[i]);
     }
   }
   return finalString;
 }
-
+// main function, if number is just 1 group we call the function to solve the group - resolveGroup()
 function toLiteral(number) {
   if (number.length >= 5) {
-    log(resolveNumber(number));
+    log(generateFullLiteral(number));
   } else {
     // if it's less than 9999
     log(resolveGroup(number));
   }
 }
-
-// todo handle when not a number is given
-// todo handle when a negative number is given
-
+// read from console the number
 rl.question("Give me a number...\n", (answer) => {
   toLiteral(answer);
   rl.close();
