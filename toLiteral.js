@@ -65,9 +65,28 @@ function resolveGroup(number) {
       // handle zeros
       continue;
     }
+
     if (number.slice(-2) == 10) {
-      // handle 10s
-      literalString += literals[number.slice(-2)][0] + " ";
+      // handle 10s at the end
+
+      if (parseInt(number) == 10) {
+        literalString += "zece ";
+        break;
+      }
+
+      if (number.slice(-3)[0] == 2) {
+        literalString += `${literals[number[i]][1]} ${
+          suffixes[number.length - i][0] + " zece "
+        }`;
+      } else if (number.slice(-3)[0] == 1) {
+        literalString += `${literals[number[i]][2]} ${
+          suffixes[number.length - i][1] + " zece "
+        }`;
+      } else {
+        literalString += `${literals[number[i]][0]} ${
+          suffixes[number.length - i][0] + " zece "
+        }`;
+      }
       break;
     } else if (
       number.length - i == 2 &&
@@ -99,16 +118,19 @@ function resolveGroup(number) {
       }
     } else if (number.length - i >= 3 && number[i] == 1) {
       // handle hundreds and thousands begining with 1
+
       literalString += `${literals[number[i]][2]} ${
         suffixes[number.length - i][1]
       } `;
     } else if (number[i] == 2 && number.length - i != 1) {
       // handle the 2 exception when not at the end of the number
+
       literalString += `${literals[number[i]][1]} ${
         suffixes[number.length - i][0]
       } `;
     } else {
       // in regular cases
+
       literalString += `${literals[number[i]][0]} ${
         suffixes[number.length - i][0] + " "
       }`;
@@ -165,7 +187,6 @@ function generateBigPrefix(groupNumber) {
         }int`;
       } else {
         // handle the rest of numbers
-
         finalPrefix = `${latinPrefixes["1" + position.toString()[1]]}${
           latinPrefixes["1" + position.toString()[0]]
         }${latinPrefixes[20]}`;
@@ -180,15 +201,11 @@ function generateBigPrefix(groupNumber) {
 }
 // generating suffix ( ex. milion / miliard )
 function generateBigSufix(groupNumber, currentGroup) {
-  if (((groupNumber - 1) * 3) / 6 != 100) {
+  if ((groupNumber - 1) * 3 != 100) {
     if (groupNumber % 2 == 1) {
-      return currentGroup.length == 1 && currentGroup[0] == 1
-        ? "ilion "
-        : "ilioane ";
+      return parseInt(currentGroup) == 1 ? "ilion " : "ilioane ";
     } else {
-      return currentGroup.length == 1 && currentGroup[0] == 1
-        ? "iliard "
-        : "iliarde ";
+      return parseInt(currentGroup) == 1 ? "iliard " : "iliarde ";
     }
   } else {
     return " ";
@@ -211,8 +228,7 @@ function generateBigLiteral(groupNumber, currentNumber) {
 
     if (currentNumber == 1 || currentNumber == 2) {
       // when the number is 1 or 2 in the beginning
-
-      theLiteral = `${literals[currentNumber][1]} ${generateBigPrefix(
+      theLiteral = `${literals[parseInt(currentNumber)][1]} ${generateBigPrefix(
         groupNumber
       )}${generateBigSufix(groupNumber, currentNumber)}`;
     } else {
